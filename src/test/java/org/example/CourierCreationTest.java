@@ -36,14 +36,19 @@ public class CourierCreationTest extends BaseTest {
     public void testCreateDuplicateCourier() {
         CourierCreateRequest courier = createTestCourier();
 
+        // Первое создание
         Response firstCreate = CourierClient.createCourier(courier);
         assertStatusCode(firstCreate, SC_CREATED, "Первое создание курьера");
 
+        // Второе создание (дубликат) - ожидаем 409 CONFLICT
         Response secondCreate = CourierClient.createCourier(courier);
         assertStatusCode(secondCreate, SC_CONFLICT, "Создание дубликата курьера");
 
+        // Проверяем сообщение об ошибке
         String errorMessage = secondCreate.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при дублировании", errorMessage);
+        assertEquals("Неверный текст ошибки при создании дубликата курьера", 
+                "Этот логин уже используется. Попробуйте другой.", errorMessage);
     }
 
     @Test
@@ -54,8 +59,11 @@ public class CourierCreationTest extends BaseTest {
         Response response = CourierClient.createCourier(courier);
         assertStatusCode(response, SC_BAD_REQUEST, "Создание курьера без логина");
 
+        // Проверяем сообщение об ошибке
         String errorMessage = response.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при отсутствии логина", errorMessage);
+        assertEquals("Неверный текст ошибки при создании курьера без логина", 
+                "Недостаточно данных для создания учетной записи", errorMessage);
     }
 
     @Test
@@ -66,8 +74,11 @@ public class CourierCreationTest extends BaseTest {
         Response response = CourierClient.createCourier(courier);
         assertStatusCode(response, SC_BAD_REQUEST, "Создание курьера без пароля");
 
+        // Проверяем сообщение об ошибке
         String errorMessage = response.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при отсутствии пароля", errorMessage);
+        assertEquals("Неверный текст ошибки при создании курьера без пароля", 
+                "Недостаточно данных для создания учетной записи", errorMessage);
     }
 
     @Test
@@ -78,5 +89,13 @@ public class CourierCreationTest extends BaseTest {
         Response response = CourierClient.createCourier(courier);
         int[] expectedStatuses = {SC_CREATED, SC_CONFLICT};
         assertStatusCodeFlexible(response, expectedStatuses, "Создание курьера без имени");
+
+        // Если курьер создался с ошибкой - проверяем сообщение
+        if (response.statusCode() == SC_CONFLICT) {
+            String errorMessage = response.jsonPath().getString("message");
+            assertNotNull("Должно быть сообщение об ошибке", errorMessage);
+            assertEquals("Неверный текст ошибки при создании дубликата курьера без имени", 
+                    "Этот логин уже используется. Попробуйте другой.", errorMessage);
+        }
     }
 }

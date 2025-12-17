@@ -5,6 +5,7 @@ import org.example.dto.CourierCreateRequest;
 import org.example.dto.CourierLoginRequest;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.apache.http.HttpStatus.*;
@@ -12,40 +13,39 @@ import static org.junit.Assert.*;
 
 public class CourierLoginTest extends BaseTest {
 
+    private String testCourierLogin;
+    private String testCourierPassword;
+
+    @Before
+    public void setUpTestCourier() {
+        CourierCreateRequest testCourier = createTestCourier();
+        testCourierLogin = testCourier.getLogin();
+        testCourierPassword = testCourier.getPassword();
+
+        Response createResponse = CourierClient.createCourier(testCourier);
+        if (createResponse.statusCode() == SC_CREATED) {
+            CourierLoginRequest loginRequest = new CourierLoginRequest(testCourierLogin, testCourierPassword);
+            Response loginResponse = CourierClient.loginCourier(loginRequest);
+            saveCourierId(loginResponse);
+        }
+    }
+
     @Test
     @DisplayName("Успешная авторизация курьера")
     public void testLoginCourierSuccess() {
-        CourierCreateRequest courier = createTestCourier();
-
-        Response createResponse = CourierClient.createCourier(courier);
-        assertStatusCode(createResponse, SC_CREATED, "Создание курьера");
-
-        CourierLoginRequest loginRequest = new CourierLoginRequest(courier.getLogin(), courier.getPassword());
+        CourierLoginRequest loginRequest = new CourierLoginRequest(testCourierLogin, testCourierPassword);
         Response loginResponse = CourierClient.loginCourier(loginRequest);
 
         assertStatusCode(loginResponse, SC_OK, "Авторизация курьера");
 
         String courierId = loginResponse.jsonPath().getString("id");
         assertNotNull("ID курьера должен быть в ответе", courierId);
-
-        createdCourierId = courierId;
     }
 
     @Test
     @DisplayName("Авторизация с неверным паролем")
     public void testLoginWithWrongPassword() {
-        CourierCreateRequest courier = createTestCourier();
-
-        Response createResponse = CourierClient.createCourier(courier);
-        assertStatusCode(createResponse, SC_CREATED, "Создание курьера");
-
-        CourierLoginRequest correctLogin = new CourierLoginRequest(courier.getLogin(), courier.getPassword());
-        Response loginResponse = CourierClient.loginCourier(correctLogin);
-        if (loginResponse.statusCode() == SC_OK) {
-            createdCourierId = loginResponse.jsonPath().getString("id");
-        }
-
-        CourierLoginRequest wrongPassword = new CourierLoginRequest(courier.getLogin(), "wrongpassword");
+        CourierLoginRequest wrongPassword = new CourierLoginRequest(testCourierLogin, "wrongpassword");
         Response wrongPasswordResponse = CourierClient.loginCourier(wrongPassword);
 
         assertStatusCode(wrongPasswordResponse, SC_NOT_FOUND, "Авторизация с неверным паролем");
@@ -66,31 +66,21 @@ public class CourierLoginTest extends BaseTest {
         CourierLoginRequest noLogin = new CourierLoginRequest(null, "password123");
         Response response = CourierClient.loginCourier(noLogin);
 
-        // Используем гибкую проверку: API может вернуть 400 или 404
-        int[] expectedStatuses = {SC_BAD_REQUEST, SC_NOT_FOUND};
-        assertStatusCodeFlexible(response, expectedStatuses, "Авторизация без логина");
+        assertStatusCode(response, SC_BAD_REQUEST, "Авторизация без логина");
+
+        String errorMessage = response.jsonPath().getString("message");
+        assertNotNull("Должно быть сообщение об ошибке при отсутствии логина", errorMessage);
     }
 
     @Test
     @DisplayName("Авторизация без пароля")
     public void testLoginWithoutPassword() {
-        CourierCreateRequest courier = createTestCourier();
-
-        Response createResponse = CourierClient.createCourier(courier);
-        assertStatusCode(createResponse, SC_CREATED, "Создание курьера");
-
-        CourierLoginRequest correctLogin = new CourierLoginRequest(courier.getLogin(), courier.getPassword());
-        Response loginResponse = CourierClient.loginCourier(correctLogin);
-        if (loginResponse.statusCode() == SC_OK) {
-            createdCourierId = loginResponse.jsonPath().getString("id");
-        }
-
-        CourierLoginRequest noPassword = new CourierLoginRequest(courier.getLogin(), null);
+        CourierLoginRequest noPassword = new CourierLoginRequest(testCourierLogin, null);
         Response noPasswordResponse = CourierClient.loginCourier(noPassword);
 
-        // Фактически API возвращает 504 или 404, а не 400
-        // Используем гибкую проверку
-        int[] expectedStatuses = {SC_BAD_REQUEST, SC_NOT_FOUND, SC_GATEWAY_TIMEOUT};
-        assertStatusCodeFlexible(noPasswordResponse, expectedStatuses, "Авторизация без пароля");
+        assertStatusCode(noPasswordResponse, SC_BAD_REQUEST, "Авторизация без пароля");
+
+        String errorMessage = noPasswordResponse.jsonPath().getString("message");
+        assertNotNull("Должно быть сообщение об ошибке при отсутствии пароля", errorMessage);
     }
 }

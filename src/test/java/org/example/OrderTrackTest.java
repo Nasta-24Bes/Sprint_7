@@ -4,6 +4,7 @@ import org.example.api.OrderClient;
 import org.example.dto.OrderCreateRequest;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
+import org.junit.Before;
 import org.junit.Test;
 import static org.apache.http.HttpStatus.*;
 import static org.hamcrest.Matchers.*;
@@ -11,33 +12,36 @@ import static org.junit.Assert.*;
 
 public class OrderTrackTest extends BaseTest {
 
-    @Test
-    @DisplayName("Успешное получение заказа по номеру")
-    public void testGetOrderByTrackSuccess() {
+    private Integer testTrackNumber;
+
+    @Before
+    public void setUpTestOrder() {
         OrderCreateRequest order = createTestOrder();
         Response createResponse = OrderClient.createOrder(order);
         assertStatusCode(createResponse, SC_CREATED, "Создание заказа");
 
-        Integer trackNumber = OrderClient.getTrackNumberFromResponse(createResponse);
-        assertNotNull("Трек-номер должен быть получен", trackNumber);
-        addOrderTrackForCleanup(trackNumber);
+        testTrackNumber = OrderClient.getTrackNumberFromResponse(createResponse);
+        assertNotNull("Трек-номер должен быть получен", testTrackNumber);
+        addOrderTrackForCleanup(testTrackNumber);
+    }
 
-        Response orderResponse = OrderClient.getOrderByTrackWithRetry(trackNumber, 3, 2);
+    @Test
+    @DisplayName("Успешное получение заказа по номеру")
+    public void testGetOrderByTrackSuccess() {
+        Response orderResponse = OrderClient.getOrderByTrackWithRetry(testTrackNumber, 3, 2);
         assertNotNull("Заказ должен быть найден", orderResponse);
 
         orderResponse.then()
                 .statusCode(SC_OK)
                 .body("order", notNullValue())
-                .body("order.track", equalTo(trackNumber));
+                .body("order.track", equalTo(testTrackNumber));
     }
 
     @Test
     @DisplayName("Получение заказа без номера заказа")
     public void testGetOrderByTrackWithoutTrack() {
-        // track=0 считается как "без номера"
         Response response = OrderClient.getOrderByTrack(0);
-        // Фактически API возвращает 404, а не 400
-        assertStatusCode(response, SC_NOT_FOUND, "Получение заказа без номера заказа");
+        assertStatusCode(response, SC_BAD_REQUEST, "Получение заказа без номера заказа");
     }
 
     @Test
@@ -45,7 +49,6 @@ public class OrderTrackTest extends BaseTest {
     public void testGetOrderByTrackWithNonExistentTrack() {
         int nonExistentTrack = 999999;
         Response response = OrderClient.getOrderByTrack(nonExistentTrack);
-        // Фактически API возвращает 404, а не 400
-        assertStatusCode(response, SC_NOT_FOUND, "Получение заказа с несуществующим номером");
+        assertStatusCode(response, SC_BAD_REQUEST, "Получение заказа с несуществующим номером");
     }
 }

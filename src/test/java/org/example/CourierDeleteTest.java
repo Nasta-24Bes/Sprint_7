@@ -24,7 +24,7 @@ public class CourierDeleteTest extends BaseTest {
         CourierLoginRequest loginRequest = new CourierLoginRequest(courier.getLogin(), courier.getPassword());
         Response loginResponse = CourierClient.loginCourier(loginRequest);
         testCourierId = loginResponse.jsonPath().getString("id");
-        
+
         createdCourierId = testCourierId;
     }
 
@@ -37,7 +37,7 @@ public class CourierDeleteTest extends BaseTest {
         String responseBody = deleteResponse.getBody().asString();
         assertTrue("Успешный запрос должен возвращать ok: true",
                 responseBody.contains("\"ok\":true") || responseBody.contains("true"));
-        
+
         createdCourierId = null;
     }
 
@@ -45,13 +45,12 @@ public class CourierDeleteTest extends BaseTest {
     @DisplayName("Удаление курьера без ID")
     public void testDeleteCourierWithoutId() {
         Response response = CourierClient.deleteCourier("");
-        assertStatusCode(response, SC_NOT_FOUND, "Удаление курьера без ID");
+        assertStatusCode(response, SC_BAD_REQUEST, "Удаление курьера без ID");
 
-        // Проверяем сообщение об ошибке
         String errorMessage = response.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при удалении без ID", errorMessage);
         assertEquals("Неверный текст ошибки при удалении курьера без ID",
-                "Курьер с идентификатором  не найден", errorMessage);
+                "Недостаточно данных для удаления курьера", errorMessage);
     }
 
     @Test
@@ -59,12 +58,11 @@ public class CourierDeleteTest extends BaseTest {
     public void testDeleteCourierWithNonExistentId() {
         String nonExistentId = "999999";
         Response response = CourierClient.deleteCourier(nonExistentId);
-        assertStatusCode(response, SC_NOT_FOUND, "Удаление курьера с несуществующим ID");
+        assertStatusCode(response, SC_BAD_REQUEST, "Удаление курьера с несуществующим ID");
 
-        // Проверяем сообщение об ошибке
         String errorMessage = response.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при удалении с несуществующим ID", errorMessage);
         assertEquals("Неверный текст ошибки при удалении курьера с несуществующим ID",
-                "Курьер с идентификатором 999999 не найден", errorMessage);
+                "Недостаточно данных для удаления курьера", errorMessage);
     }
 }

@@ -42,6 +42,11 @@ public class OrderTrackTest extends BaseTest {
     public void testGetOrderByTrackWithoutTrack() {
         Response response = OrderClient.getOrderByTrack(0);
         assertStatusCode(response, SC_BAD_REQUEST, "Получение заказа без номера заказа");
+
+        String errorMessage = response.jsonPath().getString("message");
+        assertNotNull("Должно быть сообщение об ошибке", errorMessage);
+        assertEquals("Неверный текст ошибки при получении заказа без номера",
+                "Недостаточно данных для поиска", errorMessage);
     }
 
     @Test
@@ -50,5 +55,10 @@ public class OrderTrackTest extends BaseTest {
         int nonExistentTrack = 999999;
         Response response = OrderClient.getOrderByTrack(nonExistentTrack);
         assertStatusCode(response, SC_BAD_REQUEST, "Получение заказа с несуществующим номером");
+
+        String errorMessage = response.jsonPath().getString("message");
+        assertNotNull("Должно быть сообщение об ошибке", errorMessage);
+        assertEquals("Неверный текст ошибки при получении несуществующего заказа",
+                "Недостаточно данных для поиска", errorMessage);
     }
 }

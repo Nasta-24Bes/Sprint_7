@@ -21,11 +21,9 @@ import static org.junit.Assert.*;
 public class OrderCreationTest extends BaseTest {
 
     private final List<String> colors;
-    private final String description;
 
     public OrderCreationTest(List<String> colors, String description) {
         this.colors = colors;
-        this.description = description; // Добавьте эту строку
     }
 
     @Parameterized.Parameters(name = "{1}")
@@ -41,8 +39,6 @@ public class OrderCreationTest extends BaseTest {
     @Test
     @DisplayName("Создание и поиск заказа")
     public void testCreateAndFindOrder() {
-        System.out.println("Тестируем: " + description);
-
         OrderCreateRequest order = createTestOrderWithColors(colors);
 
         Response createResponse = OrderClient.createOrder(order);

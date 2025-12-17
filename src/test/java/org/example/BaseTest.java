@@ -97,7 +97,6 @@ public class BaseTest {
 
     @Step("Очистка тестовых данных")
     protected void cleanupTestData() {
-        // Отмена заказов
         for (Integer track : createdOrderTracks) {
             try {
                 Response cancelResponse = OrderClient.cancelOrder(track);
@@ -110,7 +109,6 @@ public class BaseTest {
         }
         createdOrderTracks.clear();
 
-        // Удаление курьера
         if (createdCourierId != null) {
             try {
                 Response deleteResponse = CourierClient.deleteCourier(createdCourierId);

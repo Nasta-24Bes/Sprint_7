@@ -51,7 +51,6 @@ public class CourierLoginTest extends BaseTest {
 
         assertStatusCode(wrongPasswordResponse, SC_NOT_FOUND, "Авторизация с неверным паролем");
 
-        // Проверяем сообщение об ошибке
         String errorMessage = wrongPasswordResponse.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при неверном пароле", errorMessage);
         assertEquals("Неверный текст ошибки при авторизации с неверным паролем",
@@ -66,7 +65,6 @@ public class CourierLoginTest extends BaseTest {
 
         assertStatusCode(response, SC_NOT_FOUND, "Авторизация несуществующего курьера");
 
-        // Проверяем сообщение об ошибке
         String errorMessage = response.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при несуществующем курьере", errorMessage);
         assertEquals("Неверный текст ошибки при авторизации несуществующего курьера",
@@ -81,7 +79,6 @@ public class CourierLoginTest extends BaseTest {
 
         assertStatusCode(response, SC_BAD_REQUEST, "Авторизация без логина");
 
-        // Проверяем сообщение об ошибке
         String errorMessage = response.jsonPath().getString("message");
         assertNotNull("Должно быть сообщение об ошибке при отсутствии логина", errorMessage);
         assertEquals("Неверный текст ошибки при авторизации без логина",
@@ -94,8 +91,7 @@ public class CourierLoginTest extends BaseTest {
         CourierLoginRequest noPassword = new CourierLoginRequest(testCourierLogin, null);
         Response noPasswordResponse = CourierClient.loginCourier(noPassword);
 
-        // Используем гибкую проверку, так как API может вернуть 400 или 504
-        int[] expectedStatuses = {SC_BAD_REQUEST, SC_GATEWAY_TIMEOUT};
+        int[] expectedStatuses = {SC_BAD_REQUEST};
         assertStatusCodeFlexible(noPasswordResponse, expectedStatuses, "Авторизация без пароля");
 
         // Если API вернул 400 - проверяем сообщение об ошибке
